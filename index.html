@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DataForge — Vista Pública</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;600&display=swap');
+  :root {
+    --bg-void:#080b0f;--bg-deep:#0d1117;--bg-panel:#161e28;--bg-card:#1a2433;--bg-hover:#1f2d3d;
+    --border:#1e3045;--accent-cyan:#00d4ff;--accent-blue:#0e7aff;--accent-purple:#8b5cf6;
+    --accent-green:#00ff88;--accent-amber:#ffaa00;--accent-red:#ff3860;
+    --text-prime:#e8f0fa;--text-mute:#6b8aaa;--text-dim:#3d5875;
+    --font-mono:'Share Tech Mono',monospace;--font-head:'Rajdhani',sans-serif;--font-body:'Exo 2',sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg-void);color:var(--text-prime);font-family:var(--font-body);min-height:100vh;display:flex;flex-direction:column;}
+  body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,212,255,0.015) 2px,rgba(0,212,255,0.015) 4px);pointer-events:none;z-index:9999;}
+  .topbar{background:var(--bg-deep);border-bottom:1px solid var(--border);padding:0 24px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+  .topbar-logo{font-family:var(--font-head);font-size:20px;font-weight:700;letter-spacing:3px;color:var(--accent-cyan);}
+  .topbar-logo span{color:var(--text-mute);font-size:12px;letter-spacing:1px;font-weight:400;margin-left:8px;}
+  .topbar-status{display:flex;align-items:center;gap:12px;font-family:var(--font-mono);font-size:11px;color:var(--text-mute);}
+  .status-dot{width:6px;height:6px;border-radius:50%;background:var(--accent-green);box-shadow:0 0 8px var(--accent-green);animation:pulse 2s infinite;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+  .public-tag{background:rgba(0,255,136,0.1);border:1px solid rgba(0,255,136,0.3);color:var(--accent-green);font-family:var(--font-mono);font-size:10px;padding:2px 8px;border-radius:10px;letter-spacing:1px;}
+  .main{flex:1;overflow-y:auto;padding:24px;}
+  .page-header{margin-bottom:24px;}
+  .page-header h1{font-family:var(--font-head);font-size:26px;font-weight:700;letter-spacing:2px;color:var(--text-prime);margin-bottom:4px;}
+  .page-header h1 span{color:var(--accent-cyan);}
+  .page-header p{color:var(--text-mute);font-size:13px;}
+  .panel-card{background:var(--bg-panel);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:20px;}
+  .panel-title{font-family:var(--font-head);font-size:14px;font-weight:600;letter-spacing:2px;color:var(--accent-blue);text-transform:uppercase;margin-bottom:16px;}
+  .type-tabs{display:flex;gap:8px;flex-wrap:wrap;}
+  .type-tab{padding:6px 14px;border-radius:20px;border:1px solid var(--border);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font-head);letter-spacing:1px;color:var(--text-mute);background:var(--bg-card);transition:all 0.15s;}
+  .type-tab:hover{border-color:var(--accent-blue);color:var(--text-prime);}
+  .type-tab.active{background:rgba(14,122,255,0.15);border-color:var(--accent-blue);color:var(--accent-cyan);}
+  input[type="search"],textarea{background:var(--bg-deep);border:1px solid var(--border);color:var(--text-prime);padding:8px 12px;border-radius:6px;font-family:var(--font-body);font-size:13px;outline:none;transition:border-color 0.15s;}
+  input:focus,textarea:focus{border-color:var(--accent-blue);}
+  .filters-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px;}
+  .filters-row input{flex:1;min-width:160px;}
+  .btn{padding:8px 18px;border-radius:6px;border:1px solid;font-family:var(--font-head);font-size:13px;font-weight:600;letter-spacing:1px;cursor:pointer;transition:all 0.15s;display:inline-flex;align-items:center;gap:6px;}
+  .btn-success{background:rgba(0,255,136,0.1);border-color:var(--accent-green);color:var(--accent-green);}
+  .btn-success:hover{background:rgba(0,255,136,0.2);}
+  .table-wrap{overflow-x:auto;border-radius:8px;border:1px solid var(--border);}
+  table{width:100%;border-collapse:collapse;font-size:12px;}
+  thead{background:var(--bg-deep);}
+  th{padding:0;text-align:left;font-family:var(--font-mono);font-size:11px;color:var(--accent-blue);letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid var(--border);white-space:nowrap;}
+  th .th-inner{display:flex;align-items:center;gap:4px;padding:10px 12px;cursor:pointer;user-select:none;}
+  th .th-inner:hover{color:var(--accent-cyan);}
+  td{padding:8px 12px;color:var(--text-prime);border-bottom:1px solid rgba(30,48,69,0.5);white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis;vertical-align:middle;}
+  tr:nth-child(even) td{background:rgba(22,30,40,0.5);}
+  tr:hover td{background:rgba(14,122,255,0.06);}
+  tr:last-child td{border-bottom:none;}
+  tr.row-done td{background:rgba(0,255,136,0.03)!important;}
+  tr.row-done td.status-cell{border-left:3px solid var(--accent-green);}
+  .btn-review{padding:4px 10px;border-radius:5px;border:1px solid rgba(0,255,136,0.25);background:transparent;color:var(--text-mute);font-family:var(--font-mono);font-size:10px;cursor:pointer;transition:all 0.2s;white-space:nowrap;}
+  .btn-review:hover{background:rgba(0,255,136,0.1);border-color:var(--accent-green);color:var(--accent-green);}
+  .btn-review.done{background:rgba(0,255,136,0.12);border-color:var(--accent-green);color:var(--accent-green);}
+  .btn-comment{padding:4px 8px;border-radius:5px;border:1px solid rgba(14,122,255,0.25);background:transparent;color:var(--text-mute);font-family:var(--font-mono);font-size:10px;cursor:pointer;transition:all 0.2s;margin-left:4px;}
+  .btn-comment:hover{background:rgba(14,122,255,0.1);color:var(--accent-blue);}
+  .btn-comment.has{border-color:var(--accent-amber);color:var(--accent-amber);background:rgba(255,170,0,0.07);}
+  .status-cell{white-space:nowrap;vertical-align:middle;}
+  .comment-preview{font-family:var(--font-mono);font-size:9px;color:var(--accent-amber);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px;}
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:2000;display:flex;align-items:center;justify-content:center;animation:fadein 0.15s;}
+  .modal-box{background:var(--bg-panel);border:1px solid var(--accent-blue);border-radius:14px;padding:28px;width:420px;max-width:90vw;box-shadow:0 0 60px rgba(14,122,255,0.2);}
+  .modal-title{font-family:var(--font-head);font-size:16px;font-weight:700;letter-spacing:2px;color:var(--accent-cyan);margin-bottom:4px;}
+  .modal-sub{font-family:var(--font-mono);font-size:11px;color:var(--text-mute);margin-bottom:18px;word-break:break-all;}
+  .modal-label{font-family:var(--font-mono);font-size:10px;color:var(--text-mute);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;display:block;}
+  .modal-box textarea{width:100%;height:90px;resize:vertical;margin-bottom:14px;}
+  .modal-actions{display:flex;gap:8px;justify-content:flex-end;}
+  .btn-cancel{padding:7px 16px;border-radius:6px;border:1px solid var(--border);background:none;color:var(--text-mute);font-family:var(--font-head);font-size:12px;font-weight:600;letter-spacing:1px;cursor:pointer;}
+  .btn-cancel:hover{color:var(--text-prime);}
+  .btn-confirm{padding:7px 16px;border-radius:6px;border:1px solid var(--accent-green);background:rgba(0,255,136,0.12);color:var(--accent-green);font-family:var(--font-head);font-size:12px;font-weight:700;letter-spacing:1px;cursor:pointer;}
+  .btn-confirm:hover{background:rgba(0,255,136,0.22);}
+  .pagination{display:flex;align-items:center;gap:8px;justify-content:flex-end;margin-top:12px;font-family:var(--font-mono);font-size:12px;color:var(--text-mute);flex-wrap:wrap;}
+  .page-btn{padding:4px 10px;border-radius:4px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-mute);cursor:pointer;font-family:var(--font-mono);font-size:12px;transition:all 0.15s;}
+  .page-btn:hover,.page-btn.cur{border-color:var(--accent-blue);color:var(--accent-cyan);background:rgba(14,122,255,0.1);}
+  .empty-state{text-align:center;padding:48px 24px;color:var(--text-dim);}
+  #toast{position:fixed;bottom:24px;right:24px;z-index:9998;display:flex;flex-direction:column;gap:8px;}
+  .toast-msg{background:var(--bg-panel);border:1px solid var(--accent-blue);color:var(--text-prime);padding:10px 16px;border-radius:8px;font-size:12px;font-family:var(--font-mono);box-shadow:0 0 20px rgba(0,0,0,0.4);animation:slideup 0.2s ease;max-width:300px;}
+  @keyframes slideup{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  @keyframes fadein{from{opacity:0}to{opacity:1}}
+  .loading{display:flex;align-items:center;gap:10px;font-family:var(--font-mono);font-size:13px;color:var(--text-mute);padding:24px;}
+  .spinner{width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent-cyan);border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-logo">&#11041; DATAFORGE <span>// VISTA PÚBLICA</span></div>
+  <div class="topbar-status">
+    <div class="status-dot"></div><span>EN VIVO</span>
+    <span class="public-tag">PÚBLICO</span>
+  </div>
+</div>
+<main class="main">
+  <div class="page-header">
+    <h1>&#9673; Vista <span>Pública</span></h1>
+    <p>Datos en tiempo real · Marca filas como revisadas y deja comentarios</p>
+  </div>
+  <div class="panel-card">
+    <div class="panel-title">&#10753; Categorías</div>
+    <div class="type-tabs" id="publicTypeTabs"><div class="loading"><div class="spinner"></div>Cargando...</div></div>
+  </div>
+  <div class="panel-card" id="publicTablePanel" style="display:none;">
+    <div class="panel-title">&#10792; Datos — <span id="publicTableTitle" style="color:var(--text-prime)"></span></div>
+    <div class="filters-row">
+      <input type="search" id="publicSearch" placeholder="Buscar..." oninput="renderTable()">
+      <button class="btn btn-success" onclick="downloadFiltered()">&#11015; Descargar Excel</button>
+    </div>
+    <div class="table-wrap"><table><thead id="publicThead"></thead><tbody id="publicTbody"></tbody></table></div>
+    <div class="pagination" id="publicPagination"></div>
+  </div>
+</main>
+
+<div class="modal-overlay" id="modalOverlay" style="display:none;">
+  <div class="modal-box">
+    <div class="modal-title">&#10003; REVISAR FILA</div>
+    <div class="modal-sub" id="modalRowInfo"></div>
+    <span class="modal-label">Comentario (opcional)</span>
+    <textarea id="modalComment" placeholder="Escribe tu comentario sobre esta revisión..."></textarea>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+      <button class="btn-confirm" onclick="confirmReview()">&#10003; Guardar revisión</button>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, onSnapshot, query, orderBy, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBrTT-bK_UTZLSg6BVMiVviIQmAYFbGo9Q",
+  authDomain: "dataforge-mio.firebaseapp.com",
+  projectId: "dataforge-mio",
+  storageBucket: "dataforge-mio.firebasestorage.app",
+  messagingSenderId: "687282166437",
+  appId: "1:687282166437:web:83772a6d56c52185784b4c"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+var ROWS_PER_PAGE=50;
+var state={excelFiles:[],reviews:{},currentType:null,page:1,sort:{col:-1,dir:1}};
+var pendingReview=null;
+
+onSnapshot(query(collection(db,'excelFiles'),orderBy('date','desc')),function(snap){
+  state.excelFiles=[];snap.forEach(function(d){state.excelFiles.push(d.data());});
+  renderTypes();
+});
+onSnapshot(collection(db,'reviews'),function(snap){
+  state.reviews={};snap.forEach(function(d){state.reviews[d.id]=d.data();});
+  if(state.currentType)renderTable();
+});
+
+function renderTypes(){
+  var tabs=document.getElementById('publicTypeTabs');
+  var types=[];
+  state.excelFiles.forEach(function(f){if(types.indexOf(f.type)<0)types.push(f.type);});
+  if(!types.length){tabs.innerHTML='<div class="empty-state"><p>No hay datos aún.</p></div>';document.getElementById('publicTablePanel').style.display='none';return;}
+  tabs.innerHTML=types.map(function(t){return'<div class="type-tab'+(state.currentType===t?' active':'')+'" onclick="selectType(\''+escJs(t)+'\')">'+t+'</div>';}).join('');
+  if(!state.currentType||types.indexOf(state.currentType)<0)selectType(types[0]);
+  else renderTable();
+  document.getElementById('publicTablePanel').style.display='block';
+}
+
+window.selectType=function(type){
+  state.currentType=type;state.page=1;state.sort={col:-1,dir:1};
+  document.getElementById('publicSearch').value='';
+  document.getElementById('publicTableTitle').textContent=type;
+  document.querySelectorAll('.type-tab').forEach(function(t){t.classList.toggle('active',t.textContent===type);});
+  renderTable();
+};
+
+window.renderTable=function(){
+  var type=state.currentType;if(!type)return;
+  var files=state.excelFiles.filter(function(f){return f.type===type;});
+  var rows=[],headers=[];
+  files.forEach(function(f){if(!headers.length)headers=f.headers||[];(f.rows||[]).forEach(function(r){rows.push(r);});});
+  var srch=document.getElementById('publicSearch').value.toLowerCase();
+  if(srch)rows=rows.filter(function(r){return headers.some(function(h){return String(r[h]||'').toLowerCase().indexOf(srch)>=0;});});
+  if(state.sort.col>=0){var sh=headers[state.sort.col],sd=state.sort.dir;rows=rows.slice().sort(function(a,b){var va=a[sh]!=null?a[sh]:'',vb=b[sh]!=null?b[sh]:'';if(typeof va==='number'&&typeof vb==='number')return(va-vb)*sd;return String(va).localeCompare(String(vb))*sd;});}
+  var pages=Math.ceil(rows.length/ROWS_PER_PAGE)||1;
+  if(state.page>pages)state.page=1;
+  var pageRows=rows.slice((state.page-1)*ROWS_PER_PAGE,state.page*ROWS_PER_PAGE);
+
+  document.getElementById('publicThead').innerHTML='<tr><th><div class="th-inner" style="cursor:default;min-width:140px;">ESTADO</div></th>'+headers.map(function(h,i){var arr=state.sort.col===i?(state.sort.dir===1?'▲':'▼'):'';return'<th><div class="th-inner" onclick="sortTable('+i+')">'+escHtml(h)+' <span>'+arr+'</span></div></th>';}).join('')+'</tr>';
+
+  document.getElementById('publicTbody').innerHTML=pageRows.length?pageRows.map(function(r){
+    var rk=makeRowKey(type,r,headers);
+    var rev=state.reviews[rk];
+    var done=rev&&rev.done;
+    var hasCom=rev&&rev.comment;
+    return'<tr class="'+(done?'row-done':'')+'">'+
+      '<td class="status-cell">'+
+        '<button class="btn-review'+(done?' done':'')+'" onclick="openModal(\''+escJs(rk)+'\',\''+escJs(String(r[headers[0]]||''))+'\')">'+
+          (done?'✓ Revisado':'○ Revisar')+
+        '</button>'+
+        '<button class="btn-comment'+(hasCom?' has':'')+'" onclick="openModal(\''+escJs(rk)+'\',\''+escJs(String(r[headers[0]]||''))+'\')" title="'+(hasCom?escHtml(rev.comment):'Comentar')+'">'+(hasCom?'💬':'✏')+'</button>'+
+        (hasCom?'<div class="comment-preview">'+escHtml(rev.comment)+'</div>':'')+
+      '</td>'+
+      headers.map(function(h){return'<td title="'+escHtml(String(r[h]!=null?r[h]:''))+'">'+escHtml(String(r[h]!=null?r[h]:''))+'</td>';}).join('')+
+    '</tr>';
+  }).join(''):'<tr><td colspan="'+(headers.length+1)+'" style="text-align:center;padding:32px;color:var(--text-dim);">Sin resultados</td></tr>';
+
+  renderPagination(pages,rows.length);
+};
+
+window.sortTable=function(i){if(state.sort.col===i)state.sort.dir*=-1;else{state.sort.col=i;state.sort.dir=1;}renderTable();};
+
+function renderPagination(pages,total){
+  var el=document.getElementById('publicPagination'),cur=state.page;
+  if(pages<=1){el.innerHTML='<span>'+total+' filas</span>';return;}
+  var html='<span>'+total+' filas</span> ';
+  html+='<button class="page-btn" onclick="changePage('+(cur-1)+')"'+(cur<=1?' disabled':'')+'>‹</button>';
+  for(var i=1;i<=pages;i++){if(pages>8&&i>2&&i<pages-1&&Math.abs(i-cur)>1){if(i===3||i===pages-2)html+='<span style="color:var(--text-dim)">…</span>';continue;}html+='<button class="page-btn'+(i===cur?' cur':'')+'" onclick="changePage('+i+')">'+i+'</button>';}
+  html+='<button class="page-btn" onclick="changePage('+(cur+1)+')"'+(cur>=pages?' disabled':'')+'>›</button>';
+  el.innerHTML=html;
+}
+window.changePage=function(n){state.page=n;renderTable();};
+
+window.openModal=function(rk,info){
+  pendingReview={rowKey:rk};
+  var rev=state.reviews[rk];
+  document.getElementById('modalRowInfo').textContent='Fila: '+info;
+  document.getElementById('modalComment').value=(rev&&rev.comment)?rev.comment:'';
+  document.getElementById('modalOverlay').style.display='flex';
+  setTimeout(function(){document.getElementById('modalComment').focus();},100);
+};
+window.closeModal=function(){document.getElementById('modalOverlay').style.display='none';pendingReview=null;};
+window.confirmReview=async function(){
+  if(!pendingReview)return;
+  var comment=document.getElementById('modalComment').value.trim();
+  try{
+    await setDoc(doc(db,'reviews',pendingReview.rowKey),{done:true,comment:comment,date:new Date().toISOString(),type:state.currentType});
+    toast('✓ Revisión guardada','var(--accent-green)');
+    closeModal();
+  }catch(e){toast('Error: '+e.message,'var(--accent-red)');}
+};
+
+window.downloadFiltered=function(){
+  var type=state.currentType;if(!type)return;
+  var files=state.excelFiles.filter(function(f){return f.type===type;});
+  var rows=[],headers=[];
+  files.forEach(function(f){if(!headers.length)headers=f.headers||[];(f.rows||[]).forEach(function(r){rows.push(r);});});
+  var srch=document.getElementById('publicSearch').value.toLowerCase();
+  if(srch)rows=rows.filter(function(r){return headers.some(function(h){return String(r[h]||'').toLowerCase().indexOf(srch)>=0;});});
+  var allH=['REVISADO','COMENTARIO'].concat(headers);
+  var wsData=[allH].concat(rows.map(function(r){var rk=makeRowKey(type,r,headers);var rev=state.reviews[rk];return[(rev&&rev.done?'Sí':'No'),(rev&&rev.comment?rev.comment:'')].concat(headers.map(function(h){return r[h]!=null?r[h]:'';  }));}));
+  var ws=XLSX.utils.aoa_to_sheet(wsData);var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,type.slice(0,31));
+  XLSX.writeFile(wb,type.replace(/\s+/g,'_')+'_revisado.xlsx');
+  toast('Descargando con estado de revisión...','var(--accent-green)');
+};
+
+function makeRowKey(type,row,headers){
+  var key=(type+'__'+headers.slice(0,3).map(function(h){return String(row[h]!=null?row[h]:'');}).join('_')).replace(/[^a-zA-Z0-9_\-]/g,'').slice(0,100);
+  return key||('row_'+Math.random().toString(36).slice(2));
+}
+function escJs(s){return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'\\"');}
+function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+window.toast=function(msg,color){var d=document.createElement('div');d.className='toast-msg';d.style.borderColor=color||'var(--accent-blue)';d.textContent=msg;document.getElementById('toast').appendChild(d);setTimeout(function(){d.remove();},4000);};
+document.getElementById('modalOverlay').addEventListener('click',function(e){if(e.target===this)closeModal();});
+</script>
+</body>
+</html>
